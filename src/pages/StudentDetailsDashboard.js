@@ -35,6 +35,24 @@ const ChartLegendChips = ({ items }) => (
   </div>
 );
 
+const unitTopicMap = {
+  I: 'Introduction to Computer Network',
+  II: 'Data Link Layer',
+  III: 'Transport Layer',
+  IV: 'Application Layer',
+  V: 'Network Layer',
+};
+
+const getUnitRoman = (unitLabel = '') => {
+  const normalized = unitLabel.toUpperCase();
+  if (normalized.includes('UNIT V') || normalized.includes('UNIT 5')) return 'V';
+  if (normalized.includes('UNIT IV') || normalized.includes('UNIT 4')) return 'IV';
+  if (normalized.includes('UNIT III') || normalized.includes('UNIT 3')) return 'III';
+  if (normalized.includes('UNIT II') || normalized.includes('UNIT 2')) return 'II';
+  if (normalized.includes('UNIT I') || normalized.includes('UNIT 1')) return 'I';
+  return null;
+};
+
 const StudentDetailsDashboard = () => {
   const { rollNo } = useParams();
   const navigate = useNavigate();
@@ -46,6 +64,10 @@ const StudentDetailsDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [classmates, setClassmates] = useState([]);
+  const [aiStudyPlan, setAiStudyPlan] = useState('');
+  const [aiPlanLoading, setAiPlanLoading] = useState(false);
+  const [aiPlanMeta, setAiPlanMeta] = useState({ aiEnabled: false, source: '' });
+  const [aiPlanError, setAiPlanError] = useState('');
   const chartColors = {
     primary: '#4a67ff',
     secondary: '#2ccfa2',
@@ -89,6 +111,35 @@ const StudentDetailsDashboard = () => {
   const assignmentAvg = validAssignments.length
     ? Math.round(validAssignments.reduce((sum, item) => sum + Number(item.marks), 0) / validAssignments.length)
     : 0;
+  const studyPlan = assignments
+    .filter((item) => item.marks === 'Not Attempted' || Number(item.marks) < 10)
+    .map((item) => {
+      const unitRoman = getUnitRoman(item.unit);
+      const topic = unitRoman ? unitTopicMap[unitRoman] : null;
+      const trigger = item.marks === 'Not Attempted' ? 'not attempted' : `scored ${item.marks}/25`;
+      return {
+        unitLabel: unitRoman ? `Unit ${unitRoman}` : item.unit,
+        topic: topic || 'Revise this unit thoroughly',
+        trigger,
+      };
+    });
+
+  const generateAiStudyPlan = async () => {
+    setAiPlanLoading(true);
+    setAiPlanError('');
+    try {
+      const res = await axios.get(`${API_URL}/api/student/${rollNo}/study-plan-ai`);
+      setAiStudyPlan(res.data.roadmap || 'No roadmap generated.');
+      setAiPlanMeta({
+        aiEnabled: Boolean(res.data.aiEnabled),
+        source: res.data.source || '',
+      });
+    } catch (err) {
+      setAiPlanError(err.response?.data?.message || 'Unable to generate AI study plan right now.');
+    } finally {
+      setAiPlanLoading(false);
+    }
+  };
   const riskLevel =
     attendancePct < 65 || midsem < 20 ? 'High' : attendancePct < 75 || assignmentAvg < 14 ? 'Medium' : 'Low';
   const attendanceTrendData = attendance.map((entry, index) => ({
@@ -202,6 +253,55 @@ const StudentDetailsDashboard = () => {
               {riskLevel === 'High' && <p className="status error">Immediate mentor intervention recommended this week.</p>}
               {riskLevel === 'Medium' && <p className="warning-text">Schedule regular check-ins and track assignment completion.</p>}
               {riskLevel === 'Low' && <p className="status success">Student is stable. Keep current progression plan.</p>}
+              <div className="card card-pad" style={{ marginTop: 12 }}>
+                <h4 style={{ marginTop: 0, marginBottom: 8 }}>Assignment-based Study Plan</h4>
+                {studyPlan.length === 0 ? (
+                  <p className="status success" style={{ margin: 0 }}>
+                    No urgent unit revisions needed from assignments.
+                  </p>
+                ) : (
+                  <ul className="muted-text" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
+                    {studyPlan.map((item, index) => (
+                      <li key={`${item.unitLabel}-${index}`}>
+                        <strong className="strong-text">{item.unitLabel}:</strong> {item.topic} ({item.trigger} in assignment)
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="card card-pad" style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h4 style={{ margin: 0 }}>AI Study Roadmap (LangChain)</h4>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={generateAiStudyPlan}
+                    disabled={aiPlanLoading}
+                  >
+                    {aiPlanLoading ? 'Generating...' : 'Generate AI Plan'}
+                  </button>
+                </div>
+                {aiPlanMeta.source && (
+                  <p className="muted-text" style={{ marginTop: 8, marginBottom: 0, fontSize: 13 }}>
+                    Source: {aiPlanMeta.aiEnabled ? 'LangChain + OpenAI' : 'Fallback planner'}
+                  </p>
+                )}
+                {aiPlanError && <p className="status error" style={{ marginBottom: 0 }}>{aiPlanError}</p>}
+                {aiStudyPlan && (
+                  <pre
+                    style={{
+                      marginTop: 12,
+                      marginBottom: 0,
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'inherit',
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {aiStudyPlan}
+                  </pre>
+                )}
+              </div>
 
               <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
                 <div className="card card-pad chart-panel">
@@ -313,7 +413,7 @@ const StudentDetailsDashboard = () => {
                     {attendance.map((entry, idx) => (
                       <tr key={`${entry.date}-${idx}`}>
                         <td>{entry.date}</td>
-                        <td>{entry.status}</td>
+                        <td className={entry.status === 'Absent' ? 'table-alert-cell' : ''}>{entry.status}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -356,7 +456,7 @@ const StudentDetailsDashboard = () => {
                     {assignments.map((item, idx) => (
                       <tr key={`${item.unit}-${idx}`}>
                         <td>{item.unit}</td>
-                        <td>{item.marks}</td>
+                        <td className={item.marks === 'Not Attempted' ? 'table-alert-cell' : ''}>{item.marks}</td>
                       </tr>
                     ))}
                   </tbody>

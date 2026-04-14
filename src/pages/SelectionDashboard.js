@@ -202,6 +202,18 @@ const SelectionDashboard = () => {
       delta: item.end - item.start,
     }));
   }, [studentTrendData]);
+  const riskTotal = useMemo(
+    () => riskDistribution.reduce((sum, item) => sum + item.value, 0),
+    [riskDistribution]
+  );
+  const riskSegments = useMemo(
+    () =>
+      riskDistribution.map((item) => ({
+        ...item,
+        percent: riskTotal ? Math.round((item.value / riskTotal) * 100) : 0,
+      })),
+    [riskDistribution, riskTotal]
+  );
   const avgAttendance = useMemo(() => {
     if (!analyticsSource.length) return 0;
     const total = analyticsSource.reduce((sum, student) => {
@@ -348,8 +360,14 @@ const SelectionDashboard = () => {
             <div style={{ width: '100%', height: 250 }}>
               <ResponsiveContainer>
                 <PieChart>
-                  <Pie data={riskDistribution} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85}>
-                    {riskDistribution.map((entry) => (
+                  <Pie
+                    data={riskSegments}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={55}
+                    outerRadius={85}
+                  >
+                    {riskSegments.map((entry) => (
                       <Cell key={entry.name} fill={entry.color} />
                     ))}
                   </Pie>
@@ -360,6 +378,28 @@ const SelectionDashboard = () => {
                   />
                 </PieChart>
               </ResponsiveContainer>
+            </div>
+            <p className="muted-text" style={{ margin: '2px 0 10px', fontSize: 13 }}>
+              Share of students in each risk category (always visible in chart and list).
+            </p>
+            <div style={{ display: 'grid', gap: 6 }}>
+              {riskSegments.map((segment) => (
+                <div key={segment.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="muted-text" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        background: segment.color,
+                        display: 'inline-block',
+                      }}
+                    />
+                    {segment.name} Risk
+                  </span>
+                  <strong className="strong-text">{segment.percent}% ({segment.value})</strong>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -410,28 +450,30 @@ const SelectionDashboard = () => {
           ) : filteredStudents.length === 0 ? (
             <p className="muted-text">No students found for current filters.</p>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Roll Number</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStudents.map((student) => (
-                  <tr key={student._id}>
-                    <td>{student.name}</td>
-                    <td>{student.rollNo}</td>
-                    <td>
-                      <button className="btn btn-primary" onClick={() => navigate(`/student/${student.rollNo}`)}>
-                        View Details
-                      </button>
-                    </td>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Roll Number</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredStudents.map((student) => (
+                    <tr key={student._id}>
+                      <td>{student.name}</td>
+                      <td>{student.rollNo}</td>
+                      <td>
+                        <button className="btn btn-primary" onClick={() => navigate(`/student/${student.rollNo}`)}>
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
 

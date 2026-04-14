@@ -265,17 +265,19 @@ const StudentDetailsDashboard = () => {
                 </div>
               </div>
 
-              <table className="table" style={{ marginTop: 14 }}>
-                <thead><tr><th>Date</th><th>Status</th></tr></thead>
-                <tbody>
-                  {attendance.map((entry, idx) => (
-                    <tr key={`${entry.date}-${idx}`}>
-                      <td>{entry.date}</td>
-                      <td>{entry.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="table-wrap" style={{ marginTop: 14 }}>
+                <table className="table">
+                  <thead><tr><th>Date</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {attendance.map((entry, idx) => (
+                      <tr key={`${entry.date}-${idx}`}>
+                        <td>{entry.date}</td>
+                        <td>{entry.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -296,17 +298,19 @@ const StudentDetailsDashboard = () => {
                 </div>
               </div>
 
-              <table className="table" style={{ marginTop: 14 }}>
-                <thead><tr><th>Unit</th><th>Marks</th></tr></thead>
-                <tbody>
-                  {assignments.map((item, idx) => (
-                    <tr key={`${item.unit}-${idx}`}>
-                      <td>{item.unit}</td>
-                      <td>{item.marks}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="table-wrap" style={{ marginTop: 14 }}>
+                <table className="table">
+                  <thead><tr><th>Unit</th><th>Marks</th></tr></thead>
+                  <tbody>
+                    {assignments.map((item, idx) => (
+                      <tr key={`${item.unit}-${idx}`}>
+                        <td>{item.unit}</td>
+                        <td>{item.marks}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -327,18 +331,20 @@ const StudentDetailsDashboard = () => {
                 </div>
               </div>
 
-              <table className="table" style={{ marginTop: 14 }}>
-                <thead><tr><th>Exam</th><th>Marks</th><th>Normalized</th></tr></thead>
-                <tbody>
-                  {examComparisonData.map((item) => (
-                    <tr key={item.exam}>
-                      <td>{item.exam}</td>
-                      <td>{item.marks}/{item.max}</td>
-                      <td>{item.normalized}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="table-wrap" style={{ marginTop: 14 }}>
+                <table className="table">
+                  <thead><tr><th>Exam</th><th>Marks</th><th>Normalized</th></tr></thead>
+                  <tbody>
+                    {examComparisonData.map((item) => (
+                      <tr key={item.exam}>
+                        <td>{item.exam}</td>
+                        <td>{item.marks}/{item.max}</td>
+                        <td>{item.normalized}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 

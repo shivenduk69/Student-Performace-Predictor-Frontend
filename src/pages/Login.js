@@ -24,41 +24,44 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-white">
-      <div className="bg-white border border-primary p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Educator Login</h2>
+    <div className="min-h-screen bg-white text-black flex items-center justify-center">
+      <div className="bg-white/70 backdrop-blur-md border border-white/20 p-10 rounded-2xl shadow-2xl w-full max-w-md hover:shadow-3xl transition-all duration-300">
+        <h2 className="text-3xl font-bold mb-8 text-center text-black">Educator Login</h2>
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Email</label>
+          <div className="mb-6">
+            <label className="block text-sm font-semibold mb-2 text-black">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-primary rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white/50 text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200"
+              placeholder="your@email.com"
               required
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Password</label>
+          <div className="mb-6">
+            <label className="block text-sm font-semibold mb-2 text-black">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-primary rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white/50 text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200"
+              placeholder="••••••••"
               required
             />
           </div>
           <button
             type="submit"
-            className="w-full bg-primary text-white py-2 rounded-md hover:bg-primary-dark transition"
+            className="w-full py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-md" 
+            style={{ backgroundColor: 'rgb(224, 242, 241)', color: 'black' }}
           >
-            Submit
+            Sign In
           </button>
         </form>
-        <div className="mt-4 text-center">
-          <Link to="/forgot-password" className="text-secondary hover:underline">Forgot Password?</Link>
+        <div className="mt-6 text-center">
+          <Link to="/forgot-password" className="text-teal-600 hover:text-teal-800 font-medium transition-colors">Forgot Password?</Link>
         </div>
-        {message && <p className="mt-4 text-center text-red-500">{message}</p>}
+        {message && <p className="mt-4 text-center text-red-600 font-medium">{message}</p>}
       </div>
     </div>
   );

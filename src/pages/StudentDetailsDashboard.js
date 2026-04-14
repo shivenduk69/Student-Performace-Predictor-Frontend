@@ -58,6 +58,12 @@ const StudentDetailsDashboard = () => {
   const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('mentorEmail');
+    navigate('/');
+  };
+
   const [student, setStudent] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [error, setError] = useState('');
@@ -68,6 +74,10 @@ const StudentDetailsDashboard = () => {
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const [aiPlanMeta, setAiPlanMeta] = useState({ aiEnabled: false, source: '' });
   const [aiPlanError, setAiPlanError] = useState('');
+  const [aiReason, setAiReason] = useState('');
+  const [aiReasonLoading, setAiReasonLoading] = useState(false);
+  const [aiReasonMeta, setAiReasonMeta] = useState({ aiEnabled: false, source: '' });
+  const [aiReasonError, setAiReasonError] = useState('');
   const chartColors = {
     primary: '#4a67ff',
     secondary: '#2ccfa2',
@@ -100,6 +110,7 @@ const StudentDetailsDashboard = () => {
   }, [API_URL, rollNo]);
 
   const performance = student?.performance?.computerNetworks;
+  const complaints = student?.complaints || [];
   const attendance = performance?.attendance || [];
   const assignments = performance?.assignments || [];
   const midsem = performance?.midsem ?? 0;
@@ -140,6 +151,22 @@ const StudentDetailsDashboard = () => {
       setAiPlanLoading(false);
     }
   };
+  const generateAiPredictionReason = async () => {
+    setAiReasonLoading(true);
+    setAiReasonError('');
+    try {
+      const res = await axios.get(`${API_URL}/api/student/${rollNo}/prediction-reason-ai`);
+      setAiReason(res.data.explanation || 'No prediction explanation generated.');
+      setAiReasonMeta({
+        aiEnabled: Boolean(res.data.aiEnabled),
+        source: res.data.source || '',
+      });
+    } catch (err) {
+      setAiReasonError(err.response?.data?.message || 'Unable to explain prediction right now.');
+    } finally {
+      setAiReasonLoading(false);
+    }
+  };
   const riskLevel =
     attendancePct < 65 || midsem < 20 ? 'High' : attendancePct < 75 || assignmentAvg < 14 ? 'Medium' : 'Low';
   const attendanceTrendData = attendance.map((entry, index) => ({
@@ -154,6 +181,7 @@ const StudentDetailsDashboard = () => {
   const assignmentChartData = assignments.map((item) => ({
     unit: item.unit,
     marks: item.marks === 'Not Attempted' ? 0 : Number(item.marks),
+    isWeak: item.marks === 'Not Attempted' || Number(item.marks) < 10,
   }));
   const examComparisonData = [
     { exam: 'Midsem', marks: midsem, max: 50, normalized: Math.round((midsem / 50) * 100) },
@@ -218,6 +246,7 @@ const StudentDetailsDashboard = () => {
           <div className="inline-actions">
             <button className="btn btn-ghost" onClick={() => navigate('/dashboard')}>Back</button>
             <button className="btn btn-ghost" onClick={() => setShowFeedbackModal(true)}>Give Feedback</button>
+            <button className="btn btn-ghost" onClick={handleLogout}>Logout</button>
           </div>
         </div>
       </header>
@@ -270,6 +299,37 @@ const StudentDetailsDashboard = () => {
                 )}
               </div>
               <div className="card card-pad" style={{ marginTop: 12 }}>
+                <h4 style={{ marginTop: 0, marginBottom: 8 }}>Action Taken (Complaints)</h4>
+                {complaints.length === 0 ? (
+                  <p className="muted-text" style={{ margin: 0 }}>
+                    No complaints recorded for this student.
+                  </p>
+                ) : (
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Complaint</th>
+                          <th>Action Taken</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {complaints.map((item, index) => (
+                          <tr key={`${item.date || 'na'}-${index}`}>
+                            <td>{item.date || '-'}</td>
+                            <td>{item.complaint || '-'}</td>
+                            <td>{item.actionTaken || '-'}</td>
+                            <td>{item.status || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              <div className="card card-pad" style={{ marginTop: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <h4 style={{ margin: 0 }}>AI Study Roadmap (LangChain)</h4>
                   <button
@@ -299,6 +359,39 @@ const StudentDetailsDashboard = () => {
                     }}
                   >
                     {aiStudyPlan}
+                  </pre>
+                )}
+              </div>
+              <div className="card card-pad" style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h4 style={{ margin: 0 }}>AI Reason Behind Prediction</h4>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={generateAiPredictionReason}
+                    disabled={aiReasonLoading}
+                  >
+                    {aiReasonLoading ? 'Analyzing...' : 'Explain Prediction'}
+                  </button>
+                </div>
+                {aiReasonMeta.source && (
+                  <p className="muted-text" style={{ marginTop: 8, marginBottom: 0, fontSize: 13 }}>
+                    Source: {aiReasonMeta.aiEnabled ? 'LangChain + OpenAI' : 'Fallback analyzer'}
+                  </p>
+                )}
+                {aiReasonError && <p className="status error" style={{ marginBottom: 0 }}>{aiReasonError}</p>}
+                {aiReason && (
+                  <pre
+                    style={{
+                      marginTop: 12,
+                      marginBottom: 0,
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'inherit',
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {aiReason}
                   </pre>
                 )}
               </div>
@@ -437,12 +530,20 @@ const StudentDetailsDashboard = () => {
                           <stop offset="0%" stopColor="#7b5cff" stopOpacity={0.95} />
                           <stop offset="100%" stopColor="#5d42d8" stopOpacity={0.8} />
                         </linearGradient>
+                        <linearGradient id="assignmentBarWeak" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#ff6b6b" stopOpacity={0.95} />
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0.85} />
+                        </linearGradient>
                       </defs>
                       <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 3" />
                       <XAxis dataKey="unit" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                       <YAxis domain={[0, 25]} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                       <Tooltip formatter={(value) => [`${value}/25`, 'Marks']} />
-                      <Bar dataKey="marks" fill="url(#assignmentBar)" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="marks" radius={[8, 8, 0, 0]}>
+                        {assignmentChartData.map((entry, index) => (
+                          <Cell key={`${entry.unit}-${index}`} fill={entry.isWeak ? 'url(#assignmentBarWeak)' : 'url(#assignmentBar)'} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

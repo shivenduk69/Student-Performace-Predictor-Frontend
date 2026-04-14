@@ -48,6 +48,12 @@ const SelectionDashboard = () => {
   const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('mentorEmail');
+    navigate('/');
+  };
+
   const [courses, setCourses] = useState([]);
   const [years, setYears] = useState([]);
   const [sections, setSections] = useState([]);
@@ -58,6 +64,7 @@ const SelectionDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [mentorNote, setMentorNote] = useState('');
   const chartColors = {
     primary: '#4a67ff',
@@ -125,6 +132,49 @@ const SelectionDashboard = () => {
     }
   };
 
+  const getRiskFromCn = (cn) => {
+    const midsem = cn.midsem || 0;
+    const assignments = cn.assignments || [];
+    const validAssignments = assignments.filter((item) => item.marks !== 'Not Attempted');
+    const assignmentAvg = validAssignments.length
+      ? validAssignments.reduce((sum, item) => sum + Number(item.marks), 0) / validAssignments.length
+      : 0;
+    if (midsem < 20) return 'High';
+    if (assignmentAvg < 14) return 'Medium';
+    return 'Low';
+  };
+
+  const getRiskLevel = (student) => {
+    const cn = student?.performance?.computerNetworks;
+    if (!cn) return 'Unknown';
+    return getRiskFromCn(cn);
+  };
+
+  const highRiskStudents = useMemo(
+    () => students.filter((student) => getRiskLevel(student) === 'High'),
+    [students]
+  );
+
+  const highRiskByCourseYear = useMemo(() => {
+    const grouped = {};
+    highRiskStudents.forEach((student) => {
+      const key = `${student.course}__${student.year}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          course: student.course,
+          year: student.year,
+          students: [],
+        };
+      }
+      grouped[key].students.push(student);
+    });
+
+    return Object.values(grouped).sort((a, b) => {
+      if (a.course === b.course) return a.year - b.year;
+      return a.course.localeCompare(b.course);
+    });
+  }, [highRiskStudents]);
+
   const filteredStudents = useMemo(() => {
     const key = searchQuery.toLowerCase().trim();
     if (!key) return students;
@@ -143,10 +193,8 @@ const SelectionDashboard = () => {
       : 0;
     const atRisk = withPerformance.filter((student) => {
       const cn = student.performance.computerNetworks;
-      const attendance = cn.attendance || [];
-      const present = attendance.filter((entry) => entry.status === 'Present').length;
-      const pct = attendance.length ? (present / attendance.length) * 100 : 0;
-      return pct < 70 || (cn.midsem || 0) < 20;
+      const risk = getRiskFromCn(cn);
+      return risk === 'High' || risk === 'Medium';
     }).length;
 
     return {
@@ -167,23 +215,10 @@ const SelectionDashboard = () => {
     analyticsSource.forEach((student) => {
       const cn = student.performance?.computerNetworks;
       if (!cn) return;
-      const attendance = cn.attendance || [];
-      const present = attendance.filter((entry) => entry.status === 'Present').length;
-      const pct = attendance.length ? (present / attendance.length) * 100 : 0;
-      const midsem = cn.midsem || 0;
-      const assignments = cn.assignments || [];
-      const validAssignments = assignments.filter((item) => item.marks !== 'Not Attempted');
-      const assignmentAvg = validAssignments.length
-        ? validAssignments.reduce((sum, item) => sum + Number(item.marks), 0) / validAssignments.length
-        : 0;
-
-      if (pct < 65 || midsem < 20) {
-        high += 1;
-      } else if (pct < 75 || assignmentAvg < 14) {
-        medium += 1;
-      } else {
-        low += 1;
-      }
+      const risk = getRiskFromCn(cn);
+      if (risk === 'High') high += 1;
+      else if (risk === 'Medium') medium += 1;
+      else low += 1;
     });
 
     return [
@@ -282,7 +317,21 @@ const SelectionDashboard = () => {
             <AnimatedLogo compact />
             <p className="topbar-tagline">Predict risk early. Act before marks drop.</p>
           </div>
-          <button className="btn btn-ghost" onClick={() => setShowFeedbackModal(true)}>Feedback</button>
+          <div className="inline-actions">
+            <button
+              className="btn btn-ghost notif-trigger"
+              onClick={() => setShowNotifications((prev) => !prev)}
+              type="button"
+              aria-label="High risk notifications"
+              title="High risk notifications"
+            >
+              <span aria-hidden="true">🔔</span>
+              <span>Alerts</span>
+              {highRiskStudents.length > 0 && <span className="notif-count">{highRiskStudents.length}</span>}
+            </button>
+            <button className="btn btn-ghost" onClick={() => setShowFeedbackModal(true)}>Feedback</button>
+            <button className="btn btn-ghost" onClick={handleLogout}>Logout</button>
+          </div>
         </div>
       </header>
 
@@ -291,6 +340,52 @@ const SelectionDashboard = () => {
           <h1>Lumora</h1>
           <p>AI-powered decision dashboard for early intervention and student success.</p>
         </section>
+        {showNotifications && (
+          <section className="card card-pad" style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <h3 className="section-title" style={{ marginBottom: 0 }}>High-Risk Alerts</h3>
+              <button type="button" className="btn btn-ghost" onClick={() => setShowNotifications(false)}>Close</button>
+            </div>
+            {highRiskByCourseYear.length === 0 ? (
+              <p className="status success" style={{ marginBottom: 0 }}>No high-risk students found right now.</p>
+            ) : (
+              <div style={{ display: 'grid', gap: 12, marginTop: 10 }}>
+                {highRiskByCourseYear.map((group) => (
+                  <div key={`${group.course}-${group.year}`} className="card card-pad">
+                    <h4 style={{ marginTop: 0, marginBottom: 10 }}>
+                      {group.course} - Year {group.year}
+                    </h4>
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {group.students.map((student) => (
+                        <div
+                          key={student._id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <span className="muted-text">
+                            {student.name} ({student.rollNo}) - Section {student.section}
+                          </span>
+                          <button
+                            className="btn btn-primary"
+                            type="button"
+                            onClick={() => navigate(`/student/${student.rollNo}`)}
+                          >
+                            View Student
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="card card-pad" style={{ marginBottom: 16 }}>
           <h3 className="section-title">Select Class</h3>
@@ -510,7 +605,10 @@ const SelectionDashboard = () => {
                 </thead>
                 <tbody>
                   {filteredStudents.map((student) => (
-                    <tr key={student._id}>
+                    <tr
+                      key={student._id}
+                      className={getRiskLevel(student) === 'High' ? 'table-row-high-risk' : ''}
+                    >
                       <td>{student.name}</td>
                       <td>{student.rollNo}</td>
                       <td>

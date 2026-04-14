@@ -1,0 +1,31 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="base" x1="80" y1="40" x2="1530" y2="870" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F3FF"/>
+      <stop offset="0.5" stop-color="#EFF7FF"/>
+      <stop offset="1" stop-color="#F1FFF9"/>
+    </linearGradient>
+    <radialGradient id="meshA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(310 220) rotate(10) scale(560 340)">
+      <stop stop-color="#8B70FF" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#8B70FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="meshB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1280 300) rotate(-12) scale(560 340)">
+      <stop stop-color="#25D4BC" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#25D4BC" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="meshC" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(820 760) rotate(0) scale(900 260)">
+      <stop stop-color="#6FA8FF" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#6FA8FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#base)"/>
+  <ellipse cx="310" cy="220" rx="560" ry="340" fill="url(#meshA)"/>
+  <ellipse cx="1280" cy="300" rx="560" ry="340" fill="url(#meshB)"/>
+  <ellipse cx="820" cy="760" rx="900" ry="260" fill="url(#meshC)"/>
+
+  <g opacity="0.2">
+    <path d="M-80 640C140 560 330 570 520 652C712 736 905 740 1098 658C1288 578 1470 582 1690 664" stroke="#7C63F9" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M-90 708C132 628 322 638 512 720C704 804 897 808 1090 726C1280 646 1462 650 1682 732" stroke="#2DCDB4" stroke-width="2.8" stroke-linecap="round"/>
+  </g>
+</svg>

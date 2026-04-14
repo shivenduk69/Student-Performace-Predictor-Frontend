@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import FeedbackModal from '../components/FeedbackModal';
+import { Link } from 'react-router-dom';
 
 const ForgotPassword = () => {
   const [step, setStep] = useState(1);
@@ -8,204 +8,111 @@ const ForgotPassword = () => {
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [message, setMessage] = useState({ text: '', type: 'error' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-  const handleCloseFeedbackModal = () => {
-    setShowFeedbackModal(false);
-    setSelectedStudent(null);
-  };
-
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/forgot-password', { email });
-      setMessage('OTP sent to your email');
+      await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
+      setMessage({ text: 'OTP sent to your email.', type: 'success' });
       setStep(2);
     } catch (err) {
-      setMessage(err.response.data.message);
+      setMessage({ text: err.response?.data?.message || 'Unable to send OTP', type: 'error' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/verify-otp', { email, otp });
-      setMessage('OTP verified');
+      await axios.post(`${API_URL}/api/auth/verify-otp`, { email, otp });
+      setMessage({ text: 'OTP verified. Set a new password.', type: 'success' });
       setStep(3);
     } catch (err) {
-      setMessage(err.response.data.message);
+      setMessage({ text: err.response?.data?.message || 'Invalid OTP', type: 'error' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setMessage('Passwords do not match');
+      setMessage({ text: 'Passwords do not match', type: 'error' });
       return;
     }
+    setIsSubmitting(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/reset-password', { email, otp, newPassword });
-      setMessage('Password reset successful');
+      await axios.post(`${API_URL}/api/auth/reset-password`, { email, otp, newPassword });
+      setMessage({ text: 'Password reset successful. You can sign in now.', type: 'success' });
       setStep(1);
       setEmail('');
       setOtp('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setMessage(err.response.data.message);
+      setMessage({ text: err.response?.data?.message || 'Password reset failed', type: 'error' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col">
-      <main className="flex-grow flex items-center justify-center p-8">
-        <div className="bg-white/70 backdrop-blur-md border border-white/20 p-10 rounded-2xl shadow-2xl w-full max-w-md hover:shadow-3xl transition-all duration-300">
+    <div className="auth-wrap">
+      <div className="card auth-card">
+        <h2 style={{ marginTop: 0 }}>Lumora Password Reset</h2>
+        <p style={{ marginTop: 0, color: '#637188' }}>Complete verification to update your account password.</p>
+        <p style={{ color: '#637188', fontSize: 14 }}>Step {step} of 3</p>
+
         {step === 1 && (
-          <>
-            <h2 className="text-3xl font-bold mb-8 text-center text-black">Forgot Password</h2>
-            <form onSubmit={handleEmailSubmit}>
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2 text-black">University Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white/50 text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200"
-                  placeholder="your@university.edu"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-md"
-                style={{ backgroundColor: 'rgb(224, 242, 241)', color: 'black' }}
-              >
-                Send OTP
-              </button>
-            </form>
-          </>
+          <form onSubmit={handleEmailSubmit} style={{ display: 'grid', gap: 12 }}>
+            <div className="field">
+              <label>Registered Email</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Sending...' : 'Send OTP'}
+            </button>
+          </form>
         )}
+
         {step === 2 && (
-          <>
-            <h2 className="text-3xl font-bold mb-8 text-center text-black">Enter OTP</h2>
-            <form onSubmit={handleOtpSubmit}>
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2 text-black">OTP</label>
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white/50 text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200"
-                  placeholder="000000"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-md"
-                style={{ backgroundColor: 'rgb(224, 242, 241)', color: 'black' }}
-              >
-                Verify OTP
-              </button>
-            </form>
-          </>
+          <form onSubmit={handleOtpSubmit} style={{ display: 'grid', gap: 12 }}>
+            <div className="field">
+              <label>OTP</label>
+              <input type="text" value={otp} onChange={(e) => setOtp(e.target.value)} required />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Verifying...' : 'Verify OTP'}
+            </button>
+          </form>
         )}
+
         {step === 3 && (
-          <>
-            <h2 className="text-3xl font-bold mb-8 text-center text-black">Reset Password</h2>
-            <form onSubmit={handlePasswordSubmit}>
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2 text-black">New Password</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white/50 text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2 text-black">Confirm Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white/50 text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-md"
-                style={{ backgroundColor: 'rgb(224, 242, 241)', color: 'black' }}
-              >
-                Reset Password
-              </button>
-            </form>
-          </>
+          <form onSubmit={handlePasswordSubmit} style={{ display: 'grid', gap: 12 }}>
+            <div className="field">
+              <label>New Password</label>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>Confirm Password</label>
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Reset Password'}
+            </button>
+          </form>
         )}
-        {message && <p className="mt-6 text-center text-red-600 font-medium">{message}</p>}
-        </div>
-      </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-300 py-10" style={{ backgroundColor: 'rgb(243, 246, 248)' }}>
-        <div className="max-w-6xl mx-auto px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
-            {/* Contact Admin */}
-            <div>
-              <h3 className="font-bold text-black mb-3 text-lg">Contact Admin</h3>
-              <p className="text-sm text-black">Email: admin@ispp.edu</p>
-              <p className="text-sm text-black">Phone: +91-XXXX-XXXX-XX</p>
-            </div>
-
-            {/* Quick Links */}
-            <div>
-              <h3 className="font-bold text-black mb-3 text-lg">Quick Links</h3>
-              <ul className="text-sm space-y-2">
-                <li>
-                  <button 
-                    onClick={() => setShowFeedbackModal(true)}
-                    className="text-black hover:text-teal-700 hover:underline font-medium transition-colors"
-                  >
-                    📋 Feedback
-                  </button>
-                </li>
-                <li><button className="text-black hover:text-teal-700 hover:underline font-medium bg-none border-none cursor-pointer text-left transition-colors">📋 System Manual</button></li>
-                <li><button className="text-black hover:text-teal-700 hover:underline font-medium bg-none border-none cursor-pointer text-left transition-colors">🔒 Privacy Policy</button></li>
-              </ul>
-            </div>
-
-            {/* About */}
-            <div>
-              <h3 className="font-bold text-black mb-3 text-lg">About</h3>
-              <p className="text-sm text-black">
-                Intelligent Student Performance Predictor - Empowering educators with data-driven insights.
-              </p>
-            </div>
-          </div>
-
-          <hr className="border-gray-400 mb-4" />
-          <div className="text-center text-sm text-black">
-            <p>&copy; 2026 Intelligent Student Performance Predictor. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-
-      {/* Feedback Modal */}
-      {showFeedbackModal && (
-        <FeedbackModal 
-          student={selectedStudent} 
-          onClose={handleCloseFeedbackModal}
-          apiUrl={API_URL}
-        />
-      )}
+        {message.text && <p className={`status ${message.type}`}>{message.text}</p>}
+        <p style={{ marginBottom: 0 }}><Link to="/">Back to Login</Link></p>
+      </div>
     </div>
   );
 };

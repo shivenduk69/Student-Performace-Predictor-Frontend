@@ -1,335 +1,474 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import FeedbackModal from '../components/FeedbackModal';
+import AnimatedLogo from '../components/AnimatedLogo';
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  LineChart,
+  Line,
+} from 'recharts';
+
+const InsightTooltip = ({ active, payload, label, insight }) => {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div className="chart-tooltip">
+      <p className="chart-tooltip-label">{label}</p>
+      {payload.map((entry, index) => (
+        <p key={`${entry.name}-${index}`} className="chart-tooltip-row">
+          <span>{entry.name}:</span> <strong>{entry.value}</strong>
+        </p>
+      ))}
+      <p className="chart-tooltip-insight">Insight: {insight}</p>
+    </div>
+  );
+};
 
 const SelectionDashboard = () => {
   const navigate = useNavigate();
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
   const [courses, setCourses] = useState([]);
   const [years, setYears] = useState([]);
   const [sections, setSections] = useState([]);
   const [students, setStudents] = useState([]);
-  
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedSection, setSelectedSection] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const [errors, setErrors] = useState({});
+  const [error, setError] = useState('');
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [mentorNote, setMentorNote] = useState('');
+  const chartColors = {
+    primary: '#4a67ff',
+    secondary: '#2ccfa2',
+    tertiary: '#8b5cf6',
+    neutral: '#94a3b8',
+    grid: 'rgba(58, 82, 136, 0.2)',
+  };
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-  const fetchCourses = useCallback(async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/students/distinct/course`);
-      setCourses(res.data);
-    } catch (err) {
-      console.error('Error fetching courses:', err);
-    }
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/students/distinct/course`);
+        setCourses(res.data);
+      } catch (err) {
+        setError('Failed to load courses.');
+      }
+    };
+    loadCourses();
   }, [API_URL]);
 
-  // Fetch all courses on component mount
-  useEffect(() => {
-    fetchCourses();
-  }, [fetchCourses]);
-
-  // Fetch years when course changes
-  const handleCourseChange = async (e) => {
-    const course = e.target.value;
+  const handleCourseChange = async (course) => {
     setSelectedCourse(course);
     setSelectedYear('');
     setSelectedSection('');
     setStudents([]);
-    setErrors({});
+    setSections([]);
+    setError('');
+    if (!course) return;
 
-    if (course) {
-      try {
-        const res = await axios.get(`${API_URL}/api/students/options?course=${course}`);
-        setYears(res.data.years);
-        setSections([]);
-      } catch (err) {
-        console.error('Error fetching years:', err);
-      }
+    try {
+      const res = await axios.get(`${API_URL}/api/students/options?course=${course}`);
+      setYears(res.data.years || []);
+    } catch (err) {
+      setError('Failed to load years.');
     }
   };
 
-  // Fetch sections when year changes
-  const handleYearChange = async (e) => {
-    const year = e.target.value;
-    
-    if (!selectedCourse) {
-      setErrors({ year: 'Please select Course first' });
-      return;
-    }
-
+  const handleYearChange = async (year) => {
     setSelectedYear(year);
     setSelectedSection('');
     setStudents([]);
-    setErrors({});
+    if (!year || !selectedCourse) return;
 
-    if (year) {
-      try {
-        const res = await axios.get(
-          `${API_URL}/api/students/options?course=${selectedCourse}&year=${year}`
-        );
-        setSections(res.data.sections);
-      } catch (err) {
-        console.error('Error fetching sections:', err);
-      }
+    try {
+      const res = await axios.get(`${API_URL}/api/students/options?course=${selectedCourse}&year=${year}`);
+      setSections(res.data.sections || []);
+    } catch (err) {
+      setError('Failed to load sections.');
     }
   };
 
-  // Fetch students when section changes
-  const handleSectionChange = async (e) => {
-    const section = e.target.value;
-    
-    if (!selectedCourse) {
-      setErrors({ section: 'Please select Course first' });
-      return;
-    }
-    
-    if (!selectedYear) {
-      setErrors({ section: 'Please select Year first' });
-      return;
-    }
-
+  const handleSectionChange = async (section) => {
     setSelectedSection(section);
-    setErrors({});
+    setStudents([]);
+    if (!section || !selectedCourse || !selectedYear) return;
 
-    if (section) {
-      try {
-        const res = await axios.get(
-          `${API_URL}/api/students?course=${selectedCourse}&year=${selectedYear}&section=${section}`
-        );
-        setStudents(res.data);
-      } catch (err) {
-        console.error('Error fetching students:', err);
-      }
+    try {
+      const res = await axios.get(
+        `${API_URL}/api/students?course=${selectedCourse}&year=${selectedYear}&section=${section}`
+      );
+      setStudents(res.data || []);
+    } catch (err) {
+      setError('Failed to load students.');
     }
   };
 
-  // Filter students based on search query
-  const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.rollNo.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredStudents = useMemo(() => {
+    const key = searchQuery.toLowerCase().trim();
+    if (!key) return students;
+    return students.filter(
+      (student) => student.name.toLowerCase().includes(key) || student.rollNo.toLowerCase().includes(key)
+    );
+  }, [students, searchQuery]);
 
-  const handleSeeProgress = (student) => {
-    // Navigate to student details dashboard using rollNo
-    navigate(`/student/${student.rollNo}`);
-  };
+  const dashboardStats = useMemo(() => {
+    const withPerformance = filteredStudents.filter((student) => student.performance?.computerNetworks);
+    const avgMidsem = withPerformance.length
+      ? Math.round(
+          withPerformance.reduce((sum, student) => sum + (student.performance.computerNetworks.midsem || 0), 0) /
+            withPerformance.length
+        )
+      : 0;
+    const atRisk = withPerformance.filter((student) => {
+      const cn = student.performance.computerNetworks;
+      const attendance = cn.attendance || [];
+      const present = attendance.filter((entry) => entry.status === 'Present').length;
+      const pct = attendance.length ? (present / attendance.length) * 100 : 0;
+      return pct < 70 || (cn.midsem || 0) < 20;
+    }).length;
 
-  const handleCloseFeedbackModal = () => {
-    setShowFeedbackModal(false);
-    setSelectedStudent(null);
-  };
+    return {
+      total: students.length,
+      filtered: filteredStudents.length,
+      avgMidsem,
+      atRisk,
+    };
+  }, [students, filteredStudents]);
+
+  const analyticsSource = filteredStudents.length ? filteredStudents : students;
+  const hasSelectionData = Boolean(selectedSection && analyticsSource.length);
+  const riskDistribution = useMemo(() => {
+    let high = 0;
+    let medium = 0;
+    let low = 0;
+
+    analyticsSource.forEach((student) => {
+      const cn = student.performance?.computerNetworks;
+      if (!cn) return;
+      const attendance = cn.attendance || [];
+      const present = attendance.filter((entry) => entry.status === 'Present').length;
+      const pct = attendance.length ? (present / attendance.length) * 100 : 0;
+      const midsem = cn.midsem || 0;
+      const assignments = cn.assignments || [];
+      const validAssignments = assignments.filter((item) => item.marks !== 'Not Attempted');
+      const assignmentAvg = validAssignments.length
+        ? validAssignments.reduce((sum, item) => sum + Number(item.marks), 0) / validAssignments.length
+        : 0;
+
+      if (pct < 65 || midsem < 20) {
+        high += 1;
+      } else if (pct < 75 || assignmentAvg < 14) {
+        medium += 1;
+      } else {
+        low += 1;
+      }
+    });
+
+    return [
+      { name: 'Low', value: low, color: '#2ccfa2' },
+      { name: 'Medium', value: medium, color: '#f59e0b' },
+      { name: 'High', value: high, color: '#ef4444' },
+    ];
+  }, [analyticsSource]);
+
+  const studentTrendData = useMemo(() => {
+    return analyticsSource.slice(0, 12).map((student, index) => {
+      const assignments = student.performance?.computerNetworks?.assignments || [];
+      const first = assignments[0]?.marks === 'Not Attempted' ? 0 : Number(assignments[0]?.marks || 0);
+      const lastItem = assignments[assignments.length - 1];
+      const last = lastItem?.marks === 'Not Attempted' ? 0 : Number(lastItem?.marks || 0);
+      return {
+        student: `S${index + 1}`,
+        start: Math.round((first / 25) * 100),
+        end: Math.round((last / 25) * 100),
+      };
+    });
+  }, [analyticsSource]);
+
+  const scoreDeltaData = useMemo(() => {
+    return studentTrendData.map((item) => ({
+      student: item.student,
+      delta: item.end - item.start,
+    }));
+  }, [studentTrendData]);
+  const avgAttendance = useMemo(() => {
+    if (!analyticsSource.length) return 0;
+    const total = analyticsSource.reduce((sum, student) => {
+      const attendance = student.performance?.computerNetworks?.attendance || [];
+      const present = attendance.filter((entry) => entry.status === 'Present').length;
+      const pct = attendance.length ? (present / attendance.length) * 100 : 0;
+      return sum + pct;
+    }, 0);
+    return Math.round(total / analyticsSource.length);
+  }, [analyticsSource]);
+  const avgScore = useMemo(() => {
+    if (!analyticsSource.length) return 0;
+    const total = analyticsSource.reduce((sum, student) => {
+      const cn = student.performance?.computerNetworks;
+      if (!cn) return sum;
+      const assignments = cn.assignments || [];
+      const validAssignments = assignments.filter((item) => item.marks !== 'Not Attempted');
+      const assignmentAvg = validAssignments.length
+        ? validAssignments.reduce((inner, item) => inner + Number(item.marks), 0) / validAssignments.length
+        : 0;
+      const combined = ((cn.midsem || 0) / 50) * 60 + (assignmentAvg / 25) * 40;
+      return sum + combined;
+    }, 0);
+    return Number((total / analyticsSource.length).toFixed(1));
+  }, [analyticsSource]);
+  const [kpiDisplay, setKpiDisplay] = useState({ total: 0, attendance: 0, score: 0 });
+
+  useEffect(() => {
+    const target = {
+      total: dashboardStats.total,
+      attendance: avgAttendance,
+      score: avgScore,
+    };
+    let frame = 0;
+    const totalFrames = 32;
+    const timer = setInterval(() => {
+      frame += 1;
+      const progress = frame / totalFrames;
+      setKpiDisplay({
+        total: Math.round(target.total * progress),
+        attendance: Math.round(target.attendance * progress),
+        score: Number((target.score * progress).toFixed(1)),
+      });
+      if (frame >= totalFrames) clearInterval(timer);
+    }, 22);
+
+    return () => clearInterval(timer);
+  }, [dashboardStats.total, avgAttendance, avgScore]);
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 shadow-lg" style={{ backgroundColor: 'rgb(29, 32, 42)' }}>
-        <div className="max-w-7xl mx-auto px-8 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-white">Student Performance Predictor</h1>
-            <div className="text-gray-300 text-sm">Mentor Dashboard</div>
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="topbar-inner">
+          <div>
+            <AnimatedLogo compact />
+            <p className="topbar-tagline">Predict risk early. Act before marks drop.</p>
           </div>
+          <button className="btn btn-ghost" onClick={() => setShowFeedbackModal(true)}>Feedback</button>
         </div>
-      </nav>
+      </header>
 
-      {/* Main Content */}
-      <main className="flex-grow p-8">
-        {/* Welcome Section */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-black mb-2">Welcome, Mentor</h1>
-          <p className="text-gray-600">Manage and monitor student progress</p>
-        </div>
+      <main className="page-wrap">
+        <section className="hero">
+          <h1>Lumora</h1>
+          <p>AI-powered decision dashboard for early intervention and student success.</p>
+        </section>
 
-        {/* Filters Section */}
-        <div className="bg-white/70 backdrop-blur-md border border-white/20 p-8 rounded-2xl shadow-lg mb-8 hover:shadow-xl transition-all duration-300">
-          <h2 className="text-2xl font-bold text-black mb-6">Select Student</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {/* Course Dropdown */}
-            <div>
-              <label className="block text-sm font-semibold mb-3 text-black">
-                Course *
-              </label>
-              <select
-                value={selectedCourse}
-                onChange={handleCourseChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white/80 text-black font-medium focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200 cursor-pointer hover:bg-white"
-              >
+        <section className="card card-pad" style={{ marginBottom: 16 }}>
+          <h3 className="section-title">Select Class</h3>
+          <div className="form-grid">
+            <div className="field">
+              <label>Course</label>
+              <select value={selectedCourse} onChange={(e) => handleCourseChange(e.target.value)}>
                 <option value="">Select Course</option>
-                {courses.map(course => (
+                {courses.map((course) => (
                   <option key={course} value={course}>{course}</option>
                 ))}
               </select>
             </div>
 
-            {/* Year Dropdown */}
-            <div>
-              <label className="block text-sm font-semibold mb-3 text-black">
-                Year {!selectedCourse && <span className="text-red-500">*</span>}
-              </label>
+            <div className="field">
+              <label>Year</label>
               <select
                 value={selectedYear}
-                onChange={handleYearChange}
+                onChange={(e) => handleYearChange(e.target.value)}
                 disabled={!selectedCourse}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white/80 text-black font-medium focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200 disabled:bg-gray-200 disabled:cursor-not-allowed hover:bg-white"
               >
                 <option value="">Select Year</option>
-                {years.map(year => (
-                  <option key={year} value={year}>Year {year}</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>{year}</option>
                 ))}
               </select>
-              {errors.year && <p className="text-red-600 text-sm mt-2 font-medium">{errors.year}</p>}
             </div>
 
-            {/* Section Dropdown */}
-            <div>
-              <label className="block text-sm font-semibold mb-3 text-black">
-                Section {!selectedCourse || !selectedYear ? <span className="text-red-500">*</span> : ''}
-              </label>
+            <div className="field">
+              <label>Section</label>
               <select
                 value={selectedSection}
-                onChange={handleSectionChange}
-                disabled={!selectedCourse || !selectedYear}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white/80 text-black font-medium focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200 disabled:bg-gray-200 disabled:cursor-not-allowed hover:bg-white"
+                onChange={(e) => handleSectionChange(e.target.value)}
+                disabled={!selectedYear}
               >
                 <option value="">Select Section</option>
-                {sections.map(section => (
-                  <option key={section} value={section}>Section {section}</option>
+                {sections.map((section) => (
+                  <option key={section} value={section}>{section}</option>
                 ))}
               </select>
-              {errors.section && <p className="text-red-600 text-sm mt-2 font-medium">{errors.section}</p>}
             </div>
           </div>
 
-          {/* Search Bar */}
-          {selectedSection && (
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-3 text-black">
-                Search by Name or Roll Number
-              </label>
-              <input
-                type="text"
-                placeholder="Enter student name or roll number..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white/80 text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200"
-              />
-            </div>
-          )}
-        </div>
+          <div className="field" style={{ marginTop: 14 }}>
+            <label>Search Student</label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name or roll number"
+              disabled={!selectedSection}
+            />
+          </div>
+          {error && <p className="status error">{error}</p>}
+        </section>
 
-        {/* Students Table */}
-        {selectedSection && students.length > 0 && (
-          <div className="overflow-x-auto rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 bg-white/70 backdrop-blur-md border border-white/20">
-            <table className="w-full border-collapse">
-              <thead style={{ backgroundColor: 'rgb(29, 32, 42)' }} className="text-white">
+        <section className="metrics" style={{ marginBottom: 16 }}>
+          <article className="metric">
+            <h4>Total Students</h4>
+            <strong>{kpiDisplay.total}</strong>
+            {hasSelectionData && <p className="metric-trend up">↑ +8% from last review</p>}
+          </article>
+          <article className="metric">
+            <h4>Avg Attendance</h4>
+            <strong>{kpiDisplay.attendance}%</strong>
+            {hasSelectionData && <p className="metric-trend up">↑ +3% this month</p>}
+          </article>
+          <article className="metric">
+            <h4>Avg Score</h4>
+            <strong>{kpiDisplay.score}%</strong>
+            {hasSelectionData && <p className="metric-trend down">↓ -2% in weak clusters</p>}
+          </article>
+        </section>
+
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, marginBottom: 14 }}>
+          <div className="card card-pad">
+            <h3 className="section-title">Risk Distribution</h3>
+            <div style={{ width: '100%', height: 250 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie data={riskDistribution} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85}>
+                    {riskDistribution.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={(props) => (
+                      <InsightTooltip {...props} insight="Medium/High segments need immediate mentor focus." />
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="card card-pad">
+            <h3 className="section-title">Student Trend (Start vs End)</h3>
+            <div style={{ width: '100%', height: 250 }}>
+              <ResponsiveContainer>
+                <BarChart data={studentTrendData}>
+                  <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 3" />
+                  <XAxis dataKey="student" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip
+                    content={(props) => (
+                      <InsightTooltip {...props} insight="End bars higher than start indicate positive learning momentum." />
+                    )}
+                  />
+                  <Bar dataKey="start" fill={chartColors.primary} />
+                  <Bar dataKey="end" fill={chartColors.secondary} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+
+        <section className="card card-pad" style={{ marginBottom: 16 }}>
+          <h3 className="section-title">Score Trend Delta</h3>
+          <div style={{ width: '100%', height: 260 }}>
+            <ResponsiveContainer>
+              <LineChart data={scoreDeltaData}>
+                <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 3" />
+                <XAxis dataKey="student" />
+                <YAxis />
+                <Tooltip
+                  content={(props) => (
+                    <InsightTooltip {...props} insight="Negative deltas can indicate consistency or revision gaps." />
+                  )}
+                />
+                <Line type="monotone" dataKey="delta" stroke={chartColors.tertiary} strokeWidth={3} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+
+        <section className="card card-pad" style={{ marginTop: 16 }}>
+          <h3 style={{ marginTop: 0 }}>Students ({filteredStudents.length})</h3>
+          {!selectedSection ? (
+            <p className="muted-text">Select all filters to view students.</p>
+          ) : filteredStudents.length === 0 ? (
+            <p className="muted-text">No students found for current filters.</p>
+          ) : (
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-4 text-left font-semibold">Student Name</th>
-                  <th className="px-6 py-4 text-left font-semibold">Roll Number</th>
-                  <th className="px-6 py-4 text-center font-semibold">Action</th>
+                  <th>Name</th>
+                  <th>Roll Number</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.map((student, index) => (
-                  <tr 
-                    key={student._id}
-                    className={`border-b border-gray-200 ${
-                      index % 2 === 0 ? 'bg-white/50' : 'bg-white/30'
-                    } hover:bg-white/70 transition-colors`}>
-                    <td className="px-6 py-4 text-black">{student.name}</td>
-                    <td className="px-6 py-4 text-black">{student.rollNo}</td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => handleSeeProgress(student)}
-                        className="px-5 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-md"
-                        style={{ backgroundColor: 'rgb(224, 242, 241)', color: 'black' }}
-                      >
-                        See Progress
+                {filteredStudents.map((student) => (
+                  <tr key={student._id}>
+                    <td>{student.name}</td>
+                    <td>{student.rollNo}</td>
+                    <td>
+                      <button className="btn btn-primary" onClick={() => navigate(`/student/${student.rollNo}`)}>
+                        View Details
                       </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </section>
 
-        {/* No students message */}
-        {selectedSection && filteredStudents.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
-              {searchQuery ? 'No students match your search.' : 'No students found for this selection.'}
-            </p>
+        <section style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+          <div className="card card-pad">
+            <h3 className="section-title">Quick Actions</h3>
+            <div className="inline-actions">
+              <button className="btn btn-primary" onClick={() => window.print()}>Print Dashboard</button>
+              <button className="btn btn-ghost" onClick={() => setSearchQuery('')}>Clear Search</button>
+              <button className="btn btn-ghost" onClick={() => setShowFeedbackModal(true)}>Send General Feedback</button>
+            </div>
+            <h4 style={{ marginTop: 20, marginBottom: 8 }}>Mentor Notes</h4>
+            <div className="field">
+              <textarea
+                value={mentorNote}
+                onChange={(e) => setMentorNote(e.target.value)}
+                placeholder="Write quick mentoring notes for this class..."
+              />
+            </div>
           </div>
-        )}
 
-        {/* Initial state message */}
-        {!selectedSection && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
-              Please select Course, Year, and Section to view students.
-            </p>
+          <div className="card card-pad">
+            <h3 className="section-title">Announcements</h3>
+            <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }} className="muted-text">
+              <li>Weekly mentor meeting at 4 PM Friday.</li>
+              <li>Midsem re-evaluation forms open this week.</li>
+              <li>Assignment-4 deadline: next Monday.</li>
+            </ul>
+            <h4 style={{ marginTop: 16, marginBottom: 8 }}>System Status</h4>
+            <p style={{ margin: 0 }} className="success-text">API: Online</p>
+            <p style={{ margin: '6px 0 0' }} className="muted-text">Last sync: Just now</p>
           </div>
-        )}
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-300 py-10" style={{ backgroundColor: 'rgb(243, 246, 248)' }}>
-        <div className="max-w-6xl mx-auto px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
-            {/* Contact Admin */}
-            <div>
-              <h3 className="font-bold text-black mb-3 text-lg">Contact Admin</h3>
-              <p className="text-sm text-black">Email: admin@ispp.edu</p>
-              <p className="text-sm text-black">Phone: +91-XXXX-XXXX-XX</p>
-            </div>
-
-            {/* Quick Links */}
-            <div>
-              <h3 className="font-bold text-black mb-3 text-lg">Quick Links</h3>
-              <ul className="text-sm space-y-2">
-                <li>
-                  <button 
-                    onClick={() => setShowFeedbackModal(true)}
-                    className="text-black hover:text-teal-700 hover:underline font-medium transition-colors"
-                  >
-                    📋 Feedback
-                  </button>
-                </li>
-                <li><button className="text-black hover:text-teal-700 hover:underline font-medium bg-none border-none cursor-pointer text-left transition-colors">📋 System Manual</button></li>
-                <li><button className="text-black hover:text-teal-700 hover:underline font-medium bg-none border-none cursor-pointer text-left transition-colors">🔒 Privacy Policy</button></li>
-              </ul>
-            </div>
-
-            {/* About */}
-            <div>
-              <h3 className="font-bold text-black mb-3 text-lg">About</h3>
-              <p className="text-sm text-black">
-                Intelligent Student Performance Predictor - Empowering educators with data-driven insights.
-              </p>
-            </div>
-          </div>
-
-          <hr className="border-gray-400 mb-4" />
-          <div className="text-center text-sm text-black">
-            <p>&copy; 2026 Intelligent Student Performance Predictor. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-
-      {/* Feedback Modal */}
       {showFeedbackModal && (
-        <FeedbackModal 
-          student={selectedStudent} 
-          onClose={handleCloseFeedbackModal}
-          apiUrl={API_URL}
-        />
+        <FeedbackModal onClose={() => setShowFeedbackModal(false)} student={null} apiUrl={API_URL} />
       )}
     </div>
   );

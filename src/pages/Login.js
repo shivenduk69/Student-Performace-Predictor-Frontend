@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import AnimatedLogo from '../components/AnimatedLogo';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -29,8 +30,16 @@ const Login = () => {
   return (
     <div className="auth-wrap">
       <div className="card auth-card">
-        <h2 style={{ marginTop: 0 }}>Lumora Mentor Login</h2>
-        <p style={{ color: '#637188', marginTop: 0 }}>Access predictive student insights and intervention recommendations.</p>
+        <div style={{ marginBottom: 18, display: 'grid', gap: 8, justifyItems: 'center' }}>
+          <AnimatedLogo />
+          <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--muted)', textAlign: 'center' }}>
+            Predict risk early. Act before marks drop.
+          </p>
+        </div>
+        <h2 style={{ marginTop: 0, textAlign: 'center' }}>Lumora Mentor Login</h2>
+        <p style={{ color: 'var(--muted)', marginTop: 0, textAlign: 'center' }}>
+          Access predictive student insights and intervention recommendations.
+        </p>
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
           <div className="field">
             <label>Email</label>

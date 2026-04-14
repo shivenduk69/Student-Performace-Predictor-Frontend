@@ -21,7 +21,19 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
+  Legend,
 } from 'recharts';
+
+const ChartLegendChips = ({ items }) => (
+  <div className="legend-chips">
+    {items.map((item) => (
+      <span key={item.label} className="legend-chip">
+        <i style={{ background: item.color }} />
+        {item.label}
+      </span>
+    ))}
+  </div>
+);
 
 const StudentDetailsDashboard = () => {
   const { rollNo } = useParams();
@@ -39,7 +51,7 @@ const StudentDetailsDashboard = () => {
     secondary: '#2ccfa2',
     tertiary: '#8b5cf6',
     neutral: '#94a3b8',
-    grid: 'rgba(58, 82, 136, 0.2)',
+    grid: 'rgba(120, 120, 160, 0.18)',
   };
 
   useEffect(() => {
@@ -192,7 +204,7 @@ const StudentDetailsDashboard = () => {
               {riskLevel === 'Low' && <p className="status success">Student is stable. Keep current progression plan.</p>}
 
               <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
-                <div className="card card-pad">
+                <div className="card card-pad chart-panel">
                   <h4 style={{ marginTop: 0 }}>Class Comparison</h4>
                   <p style={{ margin: 0 }} className="muted-text">
                     Rank in class (by midsem):{' '}
@@ -208,8 +220,11 @@ const StudentDetailsDashboard = () => {
                     </strong>
                   </p>
                 </div>
-                <div className="card card-pad">
-                  <h4 style={{ marginTop: 0 }}>Student vs Class Average</h4>
+                <div className="card card-pad chart-panel">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <h4 style={{ marginTop: 0 }}>Student vs Class Average</h4>
+                    <span className="chart-badge">Peer Benchmark</span>
+                  </div>
                   <div style={{ width: '100%', height: 200 }}>
                     <ResponsiveContainer>
                       <BarChart data={comparisonChartData}>
@@ -222,6 +237,12 @@ const StudentDetailsDashboard = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                  <ChartLegendChips
+                    items={[
+                      { label: 'Selected Student', color: chartColors.primary },
+                      { label: 'Class Average', color: chartColors.neutral },
+                    ]}
+                  />
                 </div>
               </div>
             </div>
@@ -230,26 +251,39 @@ const StudentDetailsDashboard = () => {
           {activeTab === 'attendance' && (
             <div style={{ marginTop: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-                <div className="card card-pad">
-                  <h3 style={{ marginTop: 0 }}>Attendance Trend</h3>
+                <div className="card card-pad chart-panel">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <h3 style={{ marginTop: 0 }}>Attendance Trend</h3>
+                    <span className="chart-badge">Presence Pattern</span>
+                  </div>
                   <div style={{ width: '100%', height: 250 }}>
                     <ResponsiveContainer>
                       <LineChart data={attendanceTrendData}>
+                        <defs>
+                          <linearGradient id="attLine" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#7b5cff" />
+                            <stop offset="100%" stopColor="#2dd8be" />
+                          </linearGradient>
+                        </defs>
                         <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 3" />
-                        <XAxis dataKey="index" />
-                        <YAxis domain={[0, 1]} ticks={[0, 1]} tickFormatter={(v) => (v === 1 ? 'P' : 'A')} />
+                        <XAxis dataKey="index" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <YAxis domain={[0, 1]} ticks={[0, 1]} tickFormatter={(v) => (v === 1 ? 'P' : 'A')} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                         <Tooltip
                           formatter={(value) => [value === 1 ? 'Present' : 'Absent', 'Status']}
                           labelFormatter={(label, payload) => `${label} (${payload?.[0]?.payload?.date || ''})`}
                         />
-                        <Line type="monotone" dataKey="status" stroke={chartColors.primary} strokeWidth={3} dot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="status" stroke="url(#attLine)" strokeWidth={3.5} dot={{ r: 4, fill: '#fff', stroke: '#6c5cff', strokeWidth: 2 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
+                  <ChartLegendChips items={[{ label: 'Present/Absent Trend', color: chartColors.primary }]} />
                 </div>
 
-                <div className="card card-pad">
-                  <h3 style={{ marginTop: 0 }}>Attendance Distribution</h3>
+                <div className="card card-pad chart-panel">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <h3 style={{ marginTop: 0 }}>Attendance Distribution</h3>
+                    <span className="chart-badge">Attendance Split</span>
+                  </div>
                   <div style={{ width: '100%', height: 250 }}>
                     <ResponsiveContainer>
                       <PieChart>
@@ -259,9 +293,16 @@ const StudentDetailsDashboard = () => {
                           ))}
                         </Pie>
                         <Tooltip />
+                        <Legend verticalAlign="bottom" height={24} iconType="circle" />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
+                  <ChartLegendChips
+                    items={[
+                      { label: 'Present', color: chartColors.primary },
+                      { label: 'Absent', color: chartColors.neutral },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -283,19 +324,29 @@ const StudentDetailsDashboard = () => {
 
           {activeTab === 'assignments' && (
             <div style={{ marginTop: 14 }}>
-              <div className="card card-pad">
-                <h3 style={{ marginTop: 0 }}>Unit-wise Assignment Scores</h3>
+              <div className="card card-pad chart-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h3 style={{ marginTop: 0 }}>Unit-wise Assignment Scores</h3>
+                  <span className="chart-badge">Unit Performance</span>
+                </div>
                 <div style={{ width: '100%', height: 280 }}>
                   <ResponsiveContainer>
                     <BarChart data={assignmentChartData}>
+                      <defs>
+                        <linearGradient id="assignmentBar" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#7b5cff" stopOpacity={0.95} />
+                          <stop offset="100%" stopColor="#5d42d8" stopOpacity={0.8} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 3" />
-                      <XAxis dataKey="unit" />
-                      <YAxis domain={[0, 25]} />
+                      <XAxis dataKey="unit" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 25]} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                       <Tooltip formatter={(value) => [`${value}/25`, 'Marks']} />
-                      <Bar dataKey="marks" fill={chartColors.primary} radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="marks" fill="url(#assignmentBar)" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                <ChartLegendChips items={[{ label: 'Assignment Marks', color: chartColors.primary }]} />
               </div>
 
               <div className="table-wrap" style={{ marginTop: 14 }}>
@@ -316,19 +367,30 @@ const StudentDetailsDashboard = () => {
 
           {activeTab === 'exams' && (
             <div style={{ marginTop: 14 }}>
-              <div className="card card-pad">
-                <h3 style={{ marginTop: 0 }}>Exam Performance Comparison</h3>
+              <div className="card card-pad chart-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h3 style={{ marginTop: 0 }}>Exam Performance Comparison</h3>
+                  <span className="chart-badge">Exam Analytics</span>
+                </div>
                 <div style={{ width: '100%', height: 300 }}>
                   <ResponsiveContainer>
                     <BarChart data={examComparisonData}>
+                      <defs>
+                        <linearGradient id="examBar" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#2dd8be" stopOpacity={0.95} />
+                          <stop offset="100%" stopColor="#19b9a2" stopOpacity={0.8} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 3" />
-                      <XAxis dataKey="exam" />
-                      <YAxis domain={[0, 100]} />
+                      <XAxis dataKey="exam" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                       <Tooltip formatter={(value) => [`${value}%`, 'Normalized Score']} />
-                      <Bar dataKey="normalized" fill={chartColors.primary} radius={[6, 6, 0, 0]} />
+                      <Legend />
+                      <Bar dataKey="normalized" fill="url(#examBar)" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                <ChartLegendChips items={[{ label: 'Normalized Score', color: chartColors.secondary }]} />
               </div>
 
               <div className="table-wrap" style={{ marginTop: 14 }}>
@@ -350,21 +412,25 @@ const StudentDetailsDashboard = () => {
 
           {activeTab === 'analytics' && (
             <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-              <div className="card card-pad">
-                <h3 style={{ marginTop: 0 }}>Competency Radar</h3>
+              <div className="card card-pad chart-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h3 style={{ marginTop: 0 }}>Competency Radar</h3>
+                  <span className="chart-badge">Skill Footprint</span>
+                </div>
                 <div style={{ width: '100%', height: 300 }}>
                   <ResponsiveContainer>
                     <RadarChart data={competencyRadarData}>
                       <PolarGrid />
                       <PolarAngleAxis dataKey="metric" />
                       <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                      <Radar name="Score" dataKey="score" stroke={chartColors.primary} fill={chartColors.primary} fillOpacity={0.35} />
+                      <Radar name="Score" dataKey="score" stroke={chartColors.primary} fill={chartColors.primary} fillOpacity={0.4} strokeWidth={2.5} />
                       <Tooltip />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
+                <ChartLegendChips items={[{ label: 'Overall Competency', color: chartColors.primary }]} />
               </div>
-              <div className="card card-pad">
+              <div className="card card-pad chart-panel">
                 <h3 style={{ marginTop: 0 }}>Mentor Summary</h3>
                 <p className="muted-text">
                   This analytics module combines attendance consistency, assignment engagement, and exam output

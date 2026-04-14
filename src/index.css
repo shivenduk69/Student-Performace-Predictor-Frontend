@@ -1,49 +1,49 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 
 :root {
-  --bg: #f6f4ff;
+  --bg: #f2efff;
   --surface: #ffffff;
-  --text: #1b1736;
-  --muted: #665c96;
-  --primary: #7b5cff;
-  --primary-dark: #5d42d8;
-  --accent: #14c8b0;
-  --border: #ddd4ff;
+  --text: #171332;
+  --muted: #5d4fa0;
+  --primary: #6b38ff;
+  --primary-dark: #4f24d4;
+  --accent: #00c7a5;
+  --border: #d1c4ff;
   --danger: #c0392b;
   --success: #1f8f55;
-  --shadow: 0 18px 46px rgba(97, 72, 190, 0.16);
-  --bg-overlay: rgba(246, 244, 255, 0.42);
-  --glass-surface: rgba(255, 255, 255, 0.66);
-  --glass-border: rgba(255, 255, 255, 0.74);
-  --heading-gradient: linear-gradient(90deg, #4e2dc8, #7b5cff 45%, #14c8b0);
-  --chart-1: #7b5cff;
-  --chart-2: #14c8b0;
-  --chart-3: #ff6aa2;
-  --chart-4: #9aa3cf;
-  --chart-grid: rgba(90, 80, 140, 0.2);
+  --shadow: 0 20px 52px rgba(67, 41, 176, 0.22);
+  --bg-overlay: rgba(242, 239, 255, 0.34);
+  --glass-surface: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.82);
+  --heading-gradient: linear-gradient(92deg, #3f1faa, #6b38ff 42%, #00c7a5 88%);
+  --chart-1: #6b38ff;
+  --chart-2: #00c7a5;
+  --chart-3: #ff4f8b;
+  --chart-4: #5f6fff;
+  --chart-grid: rgba(84, 58, 182, 0.24);
 }
 
 [data-theme="dark"] {
-  --bg: #0d0a1c;
-  --surface: #17132f;
-  --text: #f3eeff;
-  --muted: #b5a9df;
-  --primary: #9f86ff;
-  --primary-dark: #c6b6ff;
-  --accent: #2fe0c5;
-  --border: #3a3266;
+  --bg: #05050a;
+  --surface: #0e1019;
+  --text: #eceff8;
+  --muted: #a7b0c8;
+  --primary: #5f6b8f;
+  --primary-dark: #7f8aae;
+  --accent: #3f536f;
+  --border: #232b3c;
   --danger: #ff9b9b;
-  --success: #7ce8bc;
-  --shadow: 0 18px 42px rgba(0, 0, 0, 0.5);
-  --bg-overlay: rgba(13, 10, 28, 0.62);
-  --glass-surface: rgba(23, 19, 47, 0.66);
-  --glass-border: rgba(173, 155, 240, 0.22);
-  --heading-gradient: linear-gradient(90deg, #ffffff, #b69cff 52%, #2fe0c5);
-  --chart-1: #9f86ff;
-  --chart-2: #2fe0c5;
-  --chart-3: #ff8db7;
-  --chart-4: #8f85bd;
-  --chart-grid: rgba(175, 155, 240, 0.24);
+  --success: #77c8a9;
+  --shadow: 0 24px 58px rgba(0, 0, 0, 0.7);
+  --bg-overlay: rgba(6, 7, 12, 0.84);
+  --glass-surface: rgba(14, 16, 25, 0.82);
+  --glass-border: rgba(110, 127, 160, 0.22);
+  --heading-gradient: linear-gradient(92deg, #f3f6ff, #a8b3cf 52%, #7386a9 92%);
+  --chart-1: #7c8aaf;
+  --chart-2: #6e8da6;
+  --chart-3: #b77b9b;
+  --chart-4: #7687b2;
+  --chart-grid: rgba(124, 140, 176, 0.24);
 }
 
 * {
@@ -68,7 +68,11 @@ body {
 }
 
 [data-theme="dark"] body {
-  background-image: linear-gradient(var(--bg-overlay), var(--bg-overlay)), url("./assets/dashboard-bg.svg");
+  background-image:
+    radial-gradient(circle at 18% 18%, rgba(88, 101, 138, 0.16), transparent 42%),
+    radial-gradient(circle at 86% 10%, rgba(58, 77, 107, 0.14), transparent 38%),
+    linear-gradient(var(--bg-overlay), var(--bg-overlay)),
+    url("./assets/dashboard-bg.svg");
 }
 
 a {
@@ -106,8 +110,8 @@ a {
   content: "";
   position: absolute;
   inset: -16px -14px;
-  background: radial-gradient(circle at 20% 30%, rgba(123, 92, 255, 0.22), transparent 45%),
-    radial-gradient(circle at 80% 70%, rgba(20, 200, 176, 0.2), transparent 48%);
+  background: radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--primary) 34%, transparent), transparent 45%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 48%);
   border-radius: 22px;
   z-index: -1;
   animation: heroGlow 9s ease-in-out infinite alternate;
@@ -126,6 +130,7 @@ a {
   color: transparent;
   animation: gradientFlow 7s ease-in-out infinite;
   text-shadow: 0 8px 24px rgba(93, 66, 216, 0.18);
+  line-height: 1.1;
 }
 
 .hero p {
@@ -135,6 +140,7 @@ a {
   font-weight: 500;
   letter-spacing: 0.01em;
   max-width: 70ch;
+  line-height: 1.55;
 }
 
 .card {
@@ -147,12 +153,18 @@ a {
   -webkit-backdrop-filter: blur(8px);
   position: relative;
   overflow: hidden;
+  border-top: 1px solid color-mix(in srgb, #ffffff 70%, var(--border));
 }
 
 .card:hover {
   transform: translateY(-3px);
   box-shadow: 0 20px 44px rgba(35, 66, 150, 0.2);
   border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+}
+
+[data-theme="dark"] .card:hover {
+  box-shadow: 0 22px 48px rgba(4, 2, 16, 0.66);
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
 }
 
 .card::after {
@@ -173,6 +185,11 @@ a {
   padding: 20px;
 }
 
+.card h3,
+.card h4 {
+  letter-spacing: 0.01em;
+}
+
 .btn {
   border: 0;
   border-radius: 10px;
@@ -181,6 +198,8 @@ a {
   padding: 10px 14px;
   transition: transform 0.16s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
   letter-spacing: 0.01em;
+  min-height: 40px;
+  font-size: 0.92rem;
 }
 
 .btn:disabled {
@@ -197,6 +216,10 @@ a {
   background: linear-gradient(135deg, var(--primary-dark), color-mix(in srgb, var(--accent) 40%, var(--primary-dark)));
   transform: translateY(-1px);
   box-shadow: 0 10px 20px rgba(48, 86, 211, 0.24);
+}
+
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  box-shadow: 0 12px 24px rgba(2, 2, 12, 0.52);
 }
 
 .btn-primary {
@@ -221,7 +244,7 @@ a {
 
 .btn-ghost {
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
   color: var(--text);
 }
 
@@ -288,6 +311,15 @@ a {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 10px 28px rgba(62, 38, 138, 0.22);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+[data-theme="dark"] .topbar {
+  background: linear-gradient(98deg, rgba(13, 16, 28, 0.94), rgba(25, 31, 48, 0.94), rgba(19, 24, 39, 0.9));
+  border-bottom: 1px solid rgba(96, 112, 142, 0.36);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
 }
 
 .topbar-inner {
@@ -324,6 +356,7 @@ a {
   text-align: left;
   transition: background-color 0.2s ease;
   font-size: 0.95rem;
+  vertical-align: middle;
 }
 
 .table th {
@@ -357,6 +390,7 @@ a {
   transition: transform 0.2s ease, border-color 0.2s ease;
   position: relative;
   overflow: hidden;
+  min-height: 118px;
 }
 
 .metric::before {
@@ -387,6 +421,7 @@ a {
   letter-spacing: -0.01em;
   display: inline-block;
   animation: metricPop 0.45s ease both;
+  margin-top: 2px;
 }
 
 .metric-trend {
@@ -418,6 +453,7 @@ a {
 .tabs .btn {
   position: relative;
   overflow: hidden;
+  border-radius: 999px;
 }
 
 .tabs .btn::after {
@@ -453,6 +489,7 @@ a {
 .auth-card {
   width: min(460px, 100%);
   padding: 24px;
+  border-radius: 20px;
 }
 
 .status {
@@ -492,6 +529,7 @@ a {
 .section-title {
   margin-top: 0;
   margin-bottom: 10px;
+  font-size: 1.05rem;
 }
 
 .chart-tooltip {
@@ -504,6 +542,7 @@ a {
   box-shadow: 0 14px 30px rgba(6, 5, 12, 0.34);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  line-height: 1.35;
 }
 
 .chart-tooltip-label {
@@ -525,6 +564,49 @@ a {
   margin: 8px 0 0;
   font-size: 0.75rem;
   color: #b9a9f7;
+}
+
+.chart-panel {
+  animation: chartRise 0.6s ease both;
+  border-left: 2px solid color-mix(in srgb, var(--primary) 38%, transparent);
+}
+
+.chart-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #f5f0ff;
+  background: linear-gradient(135deg, rgba(123, 92, 255, 0.76), rgba(35, 203, 180, 0.72));
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.legend-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  border: 1px solid color-mix(in srgb, var(--primary) 26%, var(--border));
+  background: color-mix(in srgb, var(--glass-surface) 86%, transparent);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.legend-chip i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
 }
 
 .modal-backdrop {
@@ -580,6 +662,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  user-select: none;
 }
 
 .brand-icon {
@@ -697,6 +780,17 @@ a {
   }
 }
 
+@keyframes chartRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-wrap > section,
   .topbar,
@@ -713,7 +807,8 @@ a {
   .brand-dot,
   .hero h1,
   .metric strong,
-  .hero::before {
+  .hero::before,
+  .chart-panel {
     animation: none;
   }
 
@@ -778,6 +873,10 @@ a {
     padding: 14px;
   }
 
+  .card {
+    border-radius: 14px;
+  }
+
   .metrics {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -815,6 +914,10 @@ a {
 
   .brand-text strong {
     font-size: 0.9rem;
+  }
+
+  .section-title {
+    font-size: 1rem;
   }
 
   .chart-tooltip {

@@ -18,6 +18,17 @@ import {
   Line,
 } from 'recharts';
 
+const ChartLegendChips = ({ items }) => (
+  <div className="legend-chips">
+    {items.map((item) => (
+      <span key={item.label} className="legend-chip">
+        <i style={{ background: item.color }} />
+        {item.label}
+      </span>
+    ))}
+  </div>
+);
+
 const InsightTooltip = ({ active, payload, label, insight }) => {
   if (!active || !payload || !payload.length) return null;
   return (
@@ -25,7 +36,7 @@ const InsightTooltip = ({ active, payload, label, insight }) => {
       <p className="chart-tooltip-label">{label}</p>
       {payload.map((entry, index) => (
         <p key={`${entry.name}-${index}`} className="chart-tooltip-row">
-          <span>{entry.name}:</span> <strong>{entry.value}</strong>
+          <span>{entry.name}:</span> <strong>{entry.value}{typeof entry.value === 'number' ? '%' : ''}</strong>
         </p>
       ))}
       <p className="chart-tooltip-insight">Insight: {insight}</p>
@@ -53,7 +64,7 @@ const SelectionDashboard = () => {
     secondary: '#2ccfa2',
     tertiary: '#8b5cf6',
     neutral: '#94a3b8',
-    grid: 'rgba(58, 82, 136, 0.2)',
+    grid: 'rgba(120, 120, 160, 0.18)',
   };
 
   useEffect(() => {
@@ -355,8 +366,11 @@ const SelectionDashboard = () => {
         </section>
 
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, marginBottom: 14 }}>
-          <div className="card card-pad">
-            <h3 className="section-title">Risk Distribution</h3>
+          <div className="card card-pad chart-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h3 className="section-title">Risk Distribution</h3>
+              <span className="chart-badge">Class Risk Mix</span>
+            </div>
             <div style={{ width: '100%', height: 250 }}>
               <ResponsiveContainer>
                 <PieChart>
@@ -366,6 +380,8 @@ const SelectionDashboard = () => {
                     nameKey="name"
                     innerRadius={55}
                     outerRadius={85}
+                    stroke="rgba(255,255,255,0.7)"
+                    strokeWidth={2}
                   >
                     {riskSegments.map((entry) => (
                       <Cell key={entry.name} fill={entry.color} />
@@ -379,6 +395,9 @@ const SelectionDashboard = () => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            <ChartLegendChips
+              items={riskSegments.map((segment) => ({ label: `${segment.name} (${segment.percent}%)`, color: segment.color }))}
+            />
             <p className="muted-text" style={{ margin: '2px 0 10px', fontSize: 13 }}>
               Share of students in each risk category (always visible in chart and list).
             </p>
@@ -403,44 +422,74 @@ const SelectionDashboard = () => {
             </div>
           </div>
 
-          <div className="card card-pad">
-            <h3 className="section-title">Student Trend (Start vs End)</h3>
+          <div className="card card-pad chart-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h3 className="section-title">Student Trend (Start vs End)</h3>
+              <span className="chart-badge">Momentum Tracker</span>
+            </div>
             <div style={{ width: '100%', height: 250 }}>
               <ResponsiveContainer>
                 <BarChart data={studentTrendData}>
+                  <defs>
+                    <linearGradient id="startBar" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#7b5cff" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#5d42d8" stopOpacity={0.8} />
+                    </linearGradient>
+                    <linearGradient id="endBar" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2dd8be" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#18b59f" stopOpacity={0.8} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 3" />
-                  <XAxis dataKey="student" />
-                  <YAxis domain={[0, 100]} />
+                  <XAxis dataKey="student" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                   <Tooltip
                     content={(props) => (
                       <InsightTooltip {...props} insight="End bars higher than start indicate positive learning momentum." />
                     )}
                   />
-                  <Bar dataKey="start" fill={chartColors.primary} />
-                  <Bar dataKey="end" fill={chartColors.secondary} />
+                  <Bar dataKey="start" fill="url(#startBar)" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="end" fill="url(#endBar)" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            <ChartLegendChips
+              items={[
+                { label: 'Start Score', color: chartColors.primary },
+                { label: 'End Score', color: chartColors.secondary },
+              ]}
+            />
           </div>
         </section>
 
-        <section className="card card-pad" style={{ marginBottom: 16 }}>
-          <h3 className="section-title">Score Trend Delta</h3>
+        <section className="card card-pad chart-panel" style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h3 className="section-title">Score Trend Delta</h3>
+            <span className="chart-badge">Change Curve</span>
+          </div>
           <div style={{ width: '100%', height: 260 }}>
             <ResponsiveContainer>
               <LineChart data={scoreDeltaData}>
                 <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 3" />
-                <XAxis dataKey="student" />
-                <YAxis />
+                <XAxis dataKey="student" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                 <Tooltip
                   content={(props) => (
                     <InsightTooltip {...props} insight="Negative deltas can indicate consistency or revision gaps." />
                   )}
                 />
-                <Line type="monotone" dataKey="delta" stroke={chartColors.tertiary} strokeWidth={3} dot={{ r: 4 }} />
+                <Line
+                  type="monotone"
+                  dataKey="delta"
+                  stroke={chartColors.tertiary}
+                  strokeWidth={3.5}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
+          <ChartLegendChips items={[{ label: 'Delta Line', color: chartColors.tertiary }]} />
         </section>
 
         <section className="card card-pad" style={{ marginTop: 16 }}>
